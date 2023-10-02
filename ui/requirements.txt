@@ -1,0 +1,7 @@
+functions-framework==3.*
+google-cloud-storage
+numpy==1.23.0
+openai==0.28.0
+elasticsearch==7.15.0
+pandas==1.4.3
+sentence-transformers==2.2.2

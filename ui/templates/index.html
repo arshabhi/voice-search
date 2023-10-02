@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Voice Search</title>
+    <style>
+        .search-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 50px;
+            position: relative;
+            margin-bottom: 100px;
+        }
+
+        .search-input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 300px;
+            margin-right: 10px;
+        }
+
+        .search-btn {
+            padding: 10px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 30%;
+            cursor: pointer;
+        }
+
+        .voice-icon {
+            align-items: center;
+        }
+
+        .recording {
+            background-color: #ff0000;
+        }
+
+        .stopped {
+            background-color: #007bff;
+        }
+
+        #displayText {
+            display: none;
+            position: absolute;
+            top: 170%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            background-color: #fff;
+        }
+
+        .container {
+            display: none;
+            align-self: center;
+            margin: auto;
+            margin-top: 60px;
+            justify-content: center;
+            /* display: flex; */
+            justify-content: center;
+            /* align-items: flex-start; */
+            width: 80%;
+            max-width: 1200px;
+            background-color: #fff;
+            box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            padding: 20px;
+        }
+
+        .category {
+            margin-right: 20px;
+            width: 80%;
+        }
+
+        .category:last-child {
+            margin-right: 0;
+        }
+
+        .category h2 {
+            margin-bottom: 5px;
+            font-size: 1.5rem;
+            /* text-transform: uppercase; */
+            color: #333;
+            font-family: sans-serif;
+        }
+
+        .categorybody a {
+            text-decoration: none;
+            /* margin: 20% */
+        }
+
+        .categorybody a:hover {
+            text-decoration: underline;
+        }
+
+        .result {
+            margin-bottom: 10px;
+            cursor: pointer;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 5px;
+            transition: box-shadow 0.3s ease-in-out;
+        }
+
+        .result:hover {
+            box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .result-content {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+
+        .result-content p {
+            margin: 0;
+        }
+
+        .transcript {
+            background-color: #ffffff;
+            border-radius: 5px;
+            align-self: center;
+            vertical-align: middle
+        }
+
+        /* input {
+    background-color:transparent;
+    border:0;
+} */
+    </style>
+</head>
+
+<body>
+    <h1 style="text-align: center; font-family: sans-serif;">Voice Search</h1>
+
+    <div class="search-container">
+        <div class="wrapper" style="
+        display:inline-block; margin: 0px;">
+
+            <input style="border: 1px solid #000; background-color: transparent; margin: 0px;" type="search"
+                id="searchInput" class="search-input" placeholder="Search..." onsearch="updateTextForSearch()">
+            <!-- <button>GO</button> -->
+            <!-- <div class="wrapper"> -->
+            <!-- <input type="text" /> -->
+
+            </input>
+
+            <button style="border: 0px;
+                
+                vertical-align: middle;
+                padding: 0px;
+                /* width: 48px;
+                height: 48px; */
+                background-color: grey;
+                border-radius: 15%;
+                margin: 5px;" type="submit" onclick="updateTextForSearch()"><img style="padding: 5px;"
+                    src="static/search_FILL0_wght400_GRAD0_opsz24.png" /></button>
+            <!-- </div> -->
+
+            <!-- </div> -->
+            <button id="searchBtn" class="search-btn">
+                <img src="static/voice-icon-white.png" alt="Voice Icon" class="voice-icon" />
+            </button>
+            <!-- VOICE BUTTON FOR BROWSER STT -->
+            <!-- <button id="voice-input-button" onclick="toggleVoiceInput()">Start Voice Input</button>
+            <p><span id="interim-transcript"></span></p>
+            <p><span id="final-transcript"></span></p> -->
+            <div id="displayText"></div>
+            <!-- <div class="search-input" id="searchInput"> -->
+
+        </div>
+    </div>
+
+    <div id="displayContainer" class="container">
+        <div class="category">
+            <h2>Results from Medium.</h2>
+            <span id="categoryA" class="categorybody"></span>
+        </div>
+        <!-- <div class="category">
+            <h2>TEXT QUERY Based</h2>
+            <div id="categoryB" class="categorybody"></div>
+        </div> -->
+    </div>
+
+    <script>
+        let audioChunks = [];
+        let mediaRecorder;
+        let isRecording = false;
+        var searchResults = [
+            {
+                category: "A",
+                result:
+                    "Result 1 The action is an attribute of <form> element that specifies the url of the second web page. The second page receives the form-data from the first page after the ...",
+                content: "Content for Result 1",
+            },
+            { category: "B", result: "Result 2", content: "Content for Result 2" },
+            { category: "A", result: "Result 3", content: "Content for Result 3" },
+            { category: "B", result: "Result 4", content: "Content for Result 4" },
+            { category: "A", result: "Result 5", content: "Content for Result 5" },
+        ];
+        // trying out new kit .....
+        // var recognition = new webkitSpeechRecognition();
+        // recognition.continuous = true;
+        // recognition.interimResults = true;
+        // var isListening = false;
+
+        // function toggleVoiceInput() {
+        //     if (isListening) {
+        //         recognition.stop();
+        //         console.log("Voice input stopped");
+        //     } else {
+        //         recognition.start();
+        //         console.log("Voice input started");
+        //     }
+        //     isListening = !isListening;
+        //     document.getElementById("voice-input-button").innerHTML = isListening ? "Stop Voice Input" : "Start Voice Input";
+        // }
+
+        // recognition.onresult = function (event) {
+        //     var interimTranscript = '';
+        //     var finalTranscript = '';
+        //     for (var i = event.resultIndex; i < event.results.length; i++) {
+        //         var transcript = event.results[i][0].transcript;
+        //         if (event.results[i].isFinal) {
+        //             finalTranscript += transcript;
+        //             console.log("Final transcript: " + transcript);
+        //             // Do something with the final transcript
+        //         } else {
+        //             interimTranscript += transcript;
+        //         }
+        //     }
+        //     console.log("Interim transcript: " + interimTranscript);
+        //     // Do something with the interim transcript
+        //     document.getElementById("interim-transcript").innerHTML = interimTranscript;
+        //     document.getElementById("final-transcript").innerHTML = finalTranscript;
+        // };
+
+        // ... end
+
+        // Check if the browser supports the necessary APIs
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices
+                .getUserMedia({ audio: true })
+                .then(function (stream) {
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    // Start recording
+                    document.getElementById("searchBtn").addEventListener("click", function () {
+                        if (!isRecording) {
+                            audioChunks = [];
+                            mediaRecorder.start();
+                            isRecording = true;
+                            document.getElementById("searchBtn").classList.remove("stopped");
+                            document.getElementById("searchBtn").classList.add("recording");
+                        }
+                        else {
+                            mediaRecorder.stop();
+                            isRecording = false;
+                            document.getElementById("searchBtn").classList.remove("recording");
+                            document.getElementById("searchBtn").classList.add("stopped");
+                        }
+                    });
+
+                    // Stop recording
+                    // document.getElementById("searchBtn").addEventListener("dblclick", function () {
+
+                    // });
+
+                    // Handle data available event
+                    mediaRecorder.addEventListener("dataavailable", function (event) {
+                        audioChunks.push(event.data);
+                    });
+
+                    // Handle stop event
+                    mediaRecorder.addEventListener("stop", function () {
+                        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                        const reader = new FileReader();
+
+                        reader.onloadend = function () {
+                            const base64Data = reader.result.split(",")[1];
+                            console.log("Base64 encoded audio:", base64Data);
+                            updateTextForVoice(base64Data);
+                        };
+
+                        // var displayText = document.getElementById("displayText");
+                        //     displayText.innerHTML = "Search For Audio: Hello";
+                        //     if (!isRecording) {
+                        //         displayText.style.display = "block";
+                        //     } else {
+                        //         displayText.style.display = "none";
+                        // }
+
+                        reader.readAsDataURL(audioBlob);
+                    });
+                })
+                .catch(function (error) {
+                    console.error("Error accessing microphone:", error);
+                });
+        } else {
+            console.error("getUserMedia not supported on your browser!");
+        }
+
+        function updateTextForSearch() {
+            var textBox = document.getElementById("searchInput");
+            // var displayText = document.getElementById("displayText");
+            // var displayContainer = document.getElementById("displayContainer");
+
+            // displayText.innerHTML = `showing top results for: <b>${textBox.value}</b> <br>`;
+            if (textBox.value !== "") {
+                var myHeaders = new Headers();
+                myHeaders.append("Content-Type", "application/json");
+                // myHeaders.append("Access-Control-Allow-Origin", "*");
+                // myHeaders.append("Access-Control-Allow-Methods", "POST,PATCH,OPTIONS");
+
+                var raw = JSON.stringify({
+                    "type": "text",
+                    "request_body": `${textBox.value}`
+                });
+
+                var requestOptions = {
+                    method: 'POST',
+                    headers: myHeaders,
+                    body: raw,
+                    redirect: 'follow'
+                };
+                console.log('error', requestOptions)
+
+                fetch("http://localhost:5000/", requestOptions)
+                    .then(response => response.text())
+                    .then(result => {
+                        var displayText = document.getElementById("displayText");
+                        var displayContainer = document.getElementById("displayContainer");
+                        displayText.innerHTML = `showing top results for: <b>${JSON.parse(result).query}</b> <br> fetching results from  <b> ${JSON.parse(result).total_count}</b> articles.`;
+                        displayText.style.display = "block";
+                        displayContainer.style.display = "flex";
+                        searchResultsForInput1(result);
+                        // const dummytext = document.createTextNode(`fetching results from  <b> ${JSON.parse(result).total_count}</b> articles.`);
+                        // displayText.appendChild(dummytext);
+                    })
+                    .catch(error => console.log('error', error));
+
+            } else {
+                displayText.style.display = "none";
+            }
+        }
+        function updateTextForVoice(base64Data) {
+
+            var myHeaders = new Headers();
+            myHeaders.append("Content-Type", "application/json");
+            // myHeaders.append("Access-Control-Allow-Origin", "*");
+            // myHeaders.append("Access-Control-Allow-Methods", "POST,PATCH,OPTIONS");
+
+            var raw = JSON.stringify({
+                "type": "audio",
+                "request_body": `${base64Data}`
+            });
+
+            var requestOptions = {
+                method: 'POST',
+                headers: myHeaders,
+                body: raw,
+                redirect: 'follow'
+            };
+            console.log('error', requestOptions)
+
+            fetch("http://localhost:5000/", requestOptions)
+                .then(response => response.text())
+                .then(result => {
+                    var displayText = document.getElementById("displayText");
+                    var displayContainer = document.getElementById("displayContainer");
+                    displayText.innerHTML = `showing top results for: <b>${JSON.parse(result).query}</b> <br> fetching results from  <b> ${JSON.parse(result).total_count}</b> articles.`;
+                    displayText.style.display = "block";
+                    displayContainer.style.display = "flex";
+                    searchResultsForInput1(result);
+                })
+                .catch(error => console.log('error', error));
+        }
+
+        // Display search results in the UI
+        function searchResultsForInput(searchResults) {
+            document.querySelectorAll(".result").forEach(function (elm) {
+                elm.remove();
+            });
+            console.log(searchResults);
+            JSON.parse(searchResults).semantic_search_results.forEach(function (result) {
+                var categoryDiv = document.getElementById("categoryA");
+                var resultDiv = document.createElement("div");
+                resultDiv.setAttribute('href', result.link);
+                resultDiv.className = "result";
+                resultDiv.textContent = `${result.title}`;
+                function openInNewTab(url) {
+                    window.open(url, '_blank');
+                }
+                resultDiv.addEventListener("click", function () {
+                    url = result.link;
+                    openInNewTab(url);
+                });
+                //     var contentDiv = this.querySelector(".result-content");
+                //     if (contentDiv.style.display === "none") {
+                //         contentDiv.style.display = "block";
+                //     } else {
+                //         contentDiv.style.display = "none";
+                //     }
+                // });
+                // var contentDiv = document.createElement("div");
+                // contentDiv.className = "result-content";
+                // contentDiv.innerHTML = "<p>" + result.author + "</p>";
+                // // contentDiv.innerHTML = "<p>" + result.id + "</p>";
+                // // contentDiv.innerHTML = "<p>" + result.link + "</p>";
+                // resultDiv.appendChild(contentDiv);
+                categoryDiv.appendChild(resultDiv);
+            });
+            // JSON.parse(searchResults).text_search_results.forEach(function (result) {
+            //     var categoryDiv = document.getElementById("categoryB");
+            //     var resultDiv = document.createElement("div");
+            //     resultDiv.className = "result";
+            //     resultDiv.textContent = result.title;
+            //     resultDiv.addEventListener("click", function () {
+            //         var contentDiv = this.querySelector(".result-content");
+            //         if (contentDiv.style.display === "none") {
+            //             contentDiv.style.display = "block";
+            //         } else {
+            //             contentDiv.style.display = "none";
+            //         }
+            //     });
+            //     var contentDiv = document.createElement("div");
+            //     contentDiv.className = "result-content";
+            //     contentDiv.innerHTML = "<p>" + result.id + "</p>";
+            //     resultDiv.appendChild(contentDiv);
+            //     categoryDiv.appendChild(resultDiv);
+            // });
+        }
+        function searchResultsForInput1(searchResults) {
+            document.querySelectorAll(".result").forEach(function (elm) {
+                elm.remove();
+            });
+            console.log(searchResults);
+            var contentDiv = document.getElementById("categoryA");
+            contentDiv.innerHTML = ''
+            JSON.parse(searchResults).semantic_search_results.forEach(result => { // Loop through the results and add them to the HTML
+                // var contentDiv = document.getElementById("categoryA");
+                // var resultDiv = document.createElement("div");
+                const title = result.title;
+                const extract = result.extract;
+                const link = result.link;
+
+                const resultHTML = `
+				<h2><a href="${link}">${title}</a></h2>
+				<p style=margin:0px>${extract}</p>
+			`;
+
+                contentDiv.innerHTML += resultHTML;
+                // resultDiv.appendChild(contentDiv);
+            })
+            // JSON.parse(searchResults).text_search_results.forEach(function (result) {
+            //     var categoryDiv = document.getElementById("categoryB");
+            //     var resultDiv = document.createElement("div");
+            //     resultDiv.className = "result";
+            //     resultDiv.textContent = result.title;
+            //     resultDiv.addEventListener("click", function () {
+            //         var contentDiv = this.querySelector(".result-content");
+            //         if (contentDiv.style.display === "none") {
+            //             contentDiv.style.display = "block";
+            //         } else {
+            //             contentDiv.style.display = "none";
+            //         }
+            //     });
+            //     var contentDiv = document.createElement("div");
+            //     contentDiv.className = "result-content";
+            //     contentDiv.innerHTML = "<p>" + result.id + "</p>";
+            //     resultDiv.appendChild(contentDiv);
+            //     categoryDiv.appendChild(resultDiv);
+            // });
+        }
+
+    </script>
+</body>
+
+</html>
